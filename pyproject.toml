@@ -1,0 +1,34 @@
+[build-system]
+requires = ['setuptools>=40.8.0', 'wheel']
+build-backend = 'setuptools.build_meta:__legacy__'
+
+[project]
+name = "vcelery-task-runner"
+version = "0.0.9"
+description = "UI to allow interactively starting Celery tasks"
+readme = "README.md"
+authors = [{ name = "Van Ly", email = "vancly@hotmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["celery", "python", "django"]
+dependencies = [
+    "django >= 1.11.29",
+    "celery >= 4.2.1",
+    "djangorestframework >= 3.11.2"
+]
+requires-python = ">=3.7"
+
+[tool.setuptools.packages.find]
+include = ["vcelerytaskrunner*"]  # ["*"] by default
+
+[project.optional-dependencies]
+dev = []
+
+[project.urls]
+Homepage = "https://www.therealvan.com"
+
+[project.scripts]

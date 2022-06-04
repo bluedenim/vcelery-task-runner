@@ -1,0 +1,15 @@
+{% extends "vcelerytaskrunner/layout.html" %}
+
+{% block title %}Task Run Result{% endblock %}
+
+{% block content %}
+  <div class="container">
+      <div class="card">
+          <h2 class="card-header">Task Run Submitted</h2>
+          <div class="card-body">
+            <p class="card-text">The task ID is <code id="task-id">{{ task_id }}</code></p>
+            <a href="{% url 'vcelery-tasks' %}" class="card-link">Back to Tasks</a>
+          </div>
+      </div>
+  </div>
+{% endblock %}

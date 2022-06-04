@@ -1,0 +1,75 @@
+{% extends "vcelerytaskrunner/layout.html" %}
+
+{% block title %}Task Run{% endblock %}
+
+{% block content %}
+  <div class="container">
+      <div class="card">
+          <div id="args-instructions" class="card-header">
+              <h2>Instructions on how to pass parameters to the task:</h2>
+              <p>Use the <code>args</code> and <code>kwargs</code> concepts as described for <a href="https://docs.celeryq.dev/en/stable/userguide/calling.html#example">apply_async()</a>.
+                  However, the values need to be provided as JSON values.
+              </p>
+              <p>
+                  For a sample task of the signature: <code>def my_task(name, age, location=None)</code>. To call it
+                  as <code>my_task("John", 28, location="San Francisco")</code>:
+              </p>
+              <p>
+                  The positional parameters (args) should be: <code>["John", 28]</code>
+              </p>
+              <p>
+                  The keyword parameters (kwargs) should be: <code>{"location": "San Francisco"}</code>
+              </p>
+          </div>
+          <div class="card-body">
+              <h2>Run Task Parameters</h2>
+              <form action="{% url 'vcelery-task-run' %}" method="post">
+                  <div id="non-field-form-errors" class="field-error-msg">
+                  {{ form.non_field_errors }}
+                  </div>
+                  {% csrf_token %}
+                  <div class="container">
+                      <div class="row">
+                          <div class="col">
+                              <div class="fieldWrapper">
+                                <label for="{{ form.task.id_for_label }}">Task:</label>
+                                {{ form.task }}
+                                <div class="field-error-msg">{{ form.task.errors }}</div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="row">
+                          <div class="col">
+                              <div class="fieldWrapper">
+                                <label for="{{ form.args.id_for_label }}">Positional parameters (args):</label>
+                                {{ form.args }}
+                                <div class="field-error-msg">{{ form.args.errors }}</div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="row">
+                          <div class="col">
+                              <div class="fieldWrapper">
+                                <label for="{{ form.task.id_for_label }}">Keyword parameters (kwargs):</label>
+                                {{ form.kwargs }}
+                                <div class="field-error-msg">{{ form.kwargs.errors }}</div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="row">
+                          <div id="run-task-submit-container" class="col right">
+                              <input class="btn btn-primary" type="submit" value="Submit" />
+                          </div>
+                      </div>
+                  </div>
+              </form>
+          </div>
+      </div>
+  </div>
+{% endblock %}
+
+{% block scriptbeforeend %}
+<script>
+    document.getElementById("{{ form.task.id_for_label }}").setAttribute("readonly", "true");
+</script>
+{% endblock %}

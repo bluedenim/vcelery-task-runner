@@ -1,0 +1,48 @@
+#top-banner {
+    width: 100%;
+    height: 100px;
+    background: #F2FCEE;
+    background: linear-gradient(180deg, rgba(242,252,238,1) 0%, rgba(255,255,255,1) 100%);
+    margin-bottom: 20px;
+    padding: 10px;
+    color: #59B833;
+    font-family: Optima, Segoe, "Segoe UI", Candara, Calibri, Arial, sans-serif;
+}
+
+.search-actions {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+#page-display {
+    margin-top: 7px;
+    width: 80px;
+    text-align: center;
+}
+
+#app {
+    margin-bottom: 30px;
+}
+
+.fieldWrapper input {
+    width: 100%;
+}
+
+.fieldWrapper textarea {
+    width: 100%;
+}
+
+.center {
+    text-align: center;
+}
+.right {
+    text-align: right;
+}
+
+.field-error-msg {
+    color: red;
+}
+
+.readonly {
+    readonly: true;
+}

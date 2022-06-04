@@ -1,0 +1,239 @@
+{% extends "vcelerytaskrunner/layout.html" %}
+
+{% block title %}Tasks{% endblock %}
+
+{% block content %}
+  <div class="container">
+      <div class="card">
+          <div id="args-instructions" class="card-header">
+              <h2 class="card-title">Tasks I know about</h2>
+              <div>
+                  <div class="container">
+                      <div class="row">
+                          <div class="col-10">
+                              <input type="text" class="form-control" id="task-search-mask" v-model="taskFilter.mask" @keyup.enter="searchEnter" placeholder="Search"/>
+                          </div>
+                          <div class="col-2" >
+                              <span id="search-task" class="search-actions" v-if="searchEnabled" v-on:click="searchTask">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                      <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                  </svg>
+                              </span>
+                              <span id="clear-search" class="search-actions" v-if="searchEnabled" v-on:click="clearSearch">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                                  </svg>
+                              </span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="card-body" v-if="!requestInProgress">
+              <div class="container right">
+                  Runnable Only <input type="checkbox" v-model="taskFilter.runnableOnly"/>
+              </div>
+              <div class="container">
+                  <table class="table table-striped table-borderless" v-if="tasks.length > 0">
+                      <thead>
+                          <tr>
+                              <th><div class="right">Runnable?</div></th>
+                              <th>Task</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr v-for="task in tasks">
+                              <td v-if="task.runnable"><div class="right"><a v-bind:href="task.task_run_url">Run</a></div></td>
+                              <td v-else="task.runnable"><div class="right">False</div></td>
+                              <td><code>{% templatetag openvariable %}task.name{% templatetag closevariable %}</code></td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+          <div class="card-body" v-if="!requestInProgress">
+              <ul class="nav justify-content-left">
+                  <li class="nav-item" v-if="pageInfo.page > 1">
+                      <a class="nav-link active" href="#" v-on:click="scrollFirst">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-left" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M11.854 3.646a.5.5 0 0 1 0 .708L8.207 8l3.647 3.646a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708 0zM4.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 1 0v-13a.5.5 0 0 0-.5-.5z"/>
+                          </svg>
+                      </a>
+                  </li>
+                  <li class="nav-item" v-else>
+                      <a class="nav-link disabled" href="#" v-on:click="scrollFirst">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-left" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M11.854 3.646a.5.5 0 0 1 0 .708L8.207 8l3.647 3.646a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708 0zM4.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 1 0v-13a.5.5 0 0 0-.5-.5z"/>
+                          </svg>
+                      </a>
+                  </li>
+
+                  <li class="nav-item" v-if="pageInfo.page > 1">
+                      <a class="nav-link active" href="#" v-on:click="scrollPrev">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                      </a>
+                  </li>
+                  <li class="nav-item" v-else>
+                      <a class="nav-link disabled" href="#" v-on:click="scrollPrev">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                      </a>
+                  </li>
+
+                  <li><div id="page-display">{% templatetag openvariable %}pageInfoDisplay{% templatetag closevariable %}</div></li>
+
+                  <li class="nav-item" v-if="pageInfo.page < pageInfo.totalPages">
+                      <a class="nav-link active" href="#" v-on:click="scrollNext">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                      </a>
+                  </li>
+                  <li class="nav-item" v-else>
+                      <a class="nav-link disabled" href="#" v-on:click="scrollNext">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                      </a>
+                  </li>
+
+                  <li class="nav-item" v-if="pageInfo.page < pageInfo.totalPages">
+                      <a class="nav-link active" href="#" v-on:click="scrollLast">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-right" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4.146 3.646a.5.5 0 0 0 0 .708L7.793 8l-3.647 3.646a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708 0zM11.5 1a.5.5 0 0 1 .5.5v13a.5.5 0 0 1-1 0v-13a.5.5 0 0 1 .5-.5z"/>
+                        </svg>
+                      </a>
+                  </li>
+                  <li class="nav-item" v-else>
+                      <a class="nav-link disabled" href="#" v-on:click="scrollLast">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-right" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M4.146 3.646a.5.5 0 0 0 0 .708L7.793 8l-3.647 3.646a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708 0zM11.5 1a.5.5 0 0 1 .5.5v13a.5.5 0 0 1-1 0v-13a.5.5 0 0 1 .5-.5z"/>
+                        </svg>
+                      </a>
+                  </li>
+
+              </ul>
+          </div>
+          <div class="card-body" v-if="requestInProgress">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Hold on...</span>
+            </div>
+          </div>
+      </div>
+  </div>
+{% endblock %}
+
+{% block vuescripts %}
+
+const pageSize = 10
+
+const app = createApp({
+  data() {
+    return {
+      tasks: [],
+      taskPagination: {offset: 0, limit: pageSize, count: 0},
+      taskFilter: {mask: "", runnableOnly: true},
+      searchEnabled: false,
+      requestInProgress: false
+    }
+  },
+
+  methods: {
+    createTaskUrl: function(mask, runnableOnly, pagination) {
+       return '{% url "vcelery-api-tasks" %}?mask=' + encodeURIComponent(mask)
+        + "&runnableOnly=" + runnableOnly.toString()
+        + "&offset=" + pagination.offset.toString()
+        + "&limit=" + pagination.limit.toString()
+    },
+
+    searchTask: async function(offset, limit) {
+      const taskUrl = this.createTaskUrl(this.taskFilter.mask, this.taskFilter.runnableOnly, this.taskPagination)
+
+      this.taskPagination.offset = 0
+      try {
+        this.requestInProgress = true
+
+        const response = await fetch(taskUrl)
+        const response_json = await response.json()
+
+        this.tasks = response_json.tasks
+        this.taskPagination.count = response_json.total_count
+      } finally {
+        this.requestInProgress = false
+      }
+    },
+
+    clearSearch: function() {
+      this.taskFilter.mask = ""
+      this.taskPagination.offset = 0
+      this.searchTask()
+    },
+
+    searchEnter: function(e) {
+      e.preventDefault()
+
+      this.requestInProgress = true
+      this.searchTask()
+    },
+
+    scrollFirst: function() {
+        this.taskPagination.offset = 0
+        this.searchTask()
+    },
+    scrollPrev: function() {
+        const newOffset = Math.max(0, this.taskPagination.offset - pageSize)
+
+        this.taskPagination.offset = newOffset
+        this.searchTask()
+    },
+    scrollNext: function() {
+        this.taskPagination.offset += pageSize
+        this.searchTask()
+    },
+    scrollLast: function() {
+        const { totalPages } = this.pageInfo
+        const lastPage = Math.max(0, totalPages - 1)
+
+        this.taskPagination.offset = lastPage * pageSize
+        this.searchTask()
+    },
+  },
+
+  computed: {
+    pageInfo: function() {
+        const page = (this.taskPagination.offset / pageSize) + 1
+        const totalPages = Math.max(1, Math.ceil(this.taskPagination.count / pageSize))
+
+        return {page: page, totalPages: totalPages}
+    },
+    pageInfoDisplay: function() {
+        const pageInfo = this.pageInfo
+
+        return `${pageInfo.page} / ${pageInfo.totalPages}`
+    }
+  },
+
+  watch: {
+    "taskFilter.mask": function(value, oldValue) {
+        if (value && value.length > 0) {
+            this.searchEnabled = true
+        } else {
+            this.searchEnabled = false
+        }
+    },
+    "taskFilter.runnableOnly": function(value, oldValue) {
+        if (oldValue !== value) {
+            this.taskPagination.offset = 0
+            this.searchTask()
+        }
+    }
+  },
+
+  mounted() {
+    this.searchTask()
+  },
+})
+{% endblock %}

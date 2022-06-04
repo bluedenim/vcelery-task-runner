@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.2/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/tasks.css' %}">
+
+    <script src="https://unpkg.com/vue@3"></script>
+    <title>{% block title %}Celery Tasks{% endblock %}</title>
+</head>
+<body>
+    <div id="top-banner">
+        <h1>vcelery-task-runner</h1>
+    </div>
+    <div id="app" class="container-fluid">
+        {% block content %}{% endblock %}
+    </div>
+
+<script>
+const { createApp } = Vue
+
+{% block vuescripts %}
+const app = createApp({
+  data() {
+    return {
+      count: 0
+    }
+  }
+})
+{% endblock %}
+if (app) {
+  app.mount('#app')
+}
+</script>
+{% block scriptbeforeend %}
+{% endblock %}
+</body>
+</html>
