@@ -5,7 +5,7 @@ This set of tools will present a UI to:
 - start Celery tasks with args and kwargs (as long as they can be expressed in JSON)
 - Journaling of who ran what tasks when and with what arguments
 
-![https://github.com/bluedenim/vcelery-task-runner/blob/master/tasks.png](tasks.png)
+![tasks.png](https://github.com/bluedenim/vcelery-task-runner/blob/master/tasks.png)
 
 Optional controls:
 
@@ -24,14 +24,17 @@ Optional controls:
       'vcelerytaskrunner.apps.AppConfig',
   ]
   ```
-  
   vcelery-task-runner uses the Django REST Library
-- Also in `settings.py`, let **vcelery-task-runner** know your Celery app:
+- Run migration for the vcelerytaskrunner app:
+  ```
+  python manage.py migrate vcelerytaskrunner
+  ```
+- In `settings.py`, let **vcelery-task-runner** know your Celery app:
   ```
   # celery_app is a reference to your project's Celery app instance
   VCELERY_TASKRUN_CELERY_APP = celery_app
   ```
-- Also in `settings.py`, set the maximum age of run records to keep around (more about this [below](#taskrunrecords)).
+- Optionally in `settings.py`, set the maximum age of run records to keep around (more about this [below](#taskrunrecords)).
   ```
   VCELERY_TASK_RUN_RECORD_LONGEVITY = timedelta(weeks=52)  # Or however long you want to keep records of task runs
   ```
@@ -100,7 +103,7 @@ Each run of a task through the UI is recorded into the model `vcelerytaskrunner.
 
 There is a default admin model set up for it:
 
-![https://github.com/bluedenim/vcelery-task-runner/blob/master/taskrunrecord_admin.png](taskrunrecord_admin.png)
+![taskrunrecord_admin.png](https://github.com/bluedenim/vcelery-task-runner/blob/master/taskrunrecord_admin.png)
 
 ### Pruning old records
 
