@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta:__legacy__'
 
 [project]
 name = "vcelery-task-runner"
-version = "0.0.10"
+version = "0.0.12"
 description = "UI to allow interactively starting Celery tasks"
 readme = "README.md"
 authors = [{ name = "Van Ly", email = "vancly@hotmail.com" }]
