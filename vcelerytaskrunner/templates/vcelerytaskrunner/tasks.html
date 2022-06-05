@@ -11,10 +11,10 @@
                   <div class="container">
                       <div class="row">
                           <div class="col-10">
-                              <input type="text" class="form-control" id="task-search-mask" v-model="taskFilter.mask" @keyup.enter="searchEnter" placeholder="Search"/>
+                              <input type="text" class="form-control" id="task-search-mask" v-model="taskFilter.mask" @keyup.enter="search" placeholder="Search"/>
                           </div>
                           <div class="col-2" >
-                              <span id="search-task" class="search-actions" v-if="searchEnabled" v-on:click="searchTask">
+                              <span id="search-task" class="search-actions" v-if="searchEnabled" v-on:click="search">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                                       <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                                   </svg>
@@ -149,10 +149,9 @@ const app = createApp({
         + "&limit=" + pagination.limit.toString()
     },
 
-    searchTask: async function(offset, limit) {
+    queryTasks: async function() {
       const taskUrl = this.createTaskUrl(this.taskFilter.mask, this.taskFilter.runnableOnly, this.taskPagination)
 
-      this.taskPagination.offset = 0
       try {
         this.requestInProgress = true
 
@@ -169,36 +168,36 @@ const app = createApp({
     clearSearch: function() {
       this.taskFilter.mask = ""
       this.taskPagination.offset = 0
-      this.searchTask()
+      this.queryTasks()
     },
 
-    searchEnter: function(e) {
+    search: function(e) {
       e.preventDefault()
 
-      this.requestInProgress = true
-      this.searchTask()
+      this.taskPagination.offset = 0
+      this.queryTasks()
     },
 
     scrollFirst: function() {
         this.taskPagination.offset = 0
-        this.searchTask()
+        this.queryTasks()
     },
     scrollPrev: function() {
         const newOffset = Math.max(0, this.taskPagination.offset - pageSize)
 
         this.taskPagination.offset = newOffset
-        this.searchTask()
+        this.queryTasks()
     },
     scrollNext: function() {
         this.taskPagination.offset += pageSize
-        this.searchTask()
+        this.queryTasks()
     },
     scrollLast: function() {
         const { totalPages } = this.pageInfo
         const lastPage = Math.max(0, totalPages - 1)
 
         this.taskPagination.offset = lastPage * pageSize
-        this.searchTask()
+        this.queryTasks()
     },
   },
 
@@ -227,13 +226,13 @@ const app = createApp({
     "taskFilter.runnableOnly": function(value, oldValue) {
         if (oldValue !== value) {
             this.taskPagination.offset = 0
-            this.searchTask()
+            this.queryTasks()
         }
     }
   },
 
   mounted() {
-    this.searchTask()
+    this.queryTasks()
   },
 })
 {% endblock %}
