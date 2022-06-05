@@ -5,7 +5,7 @@ This set of tools will present a UI to:
 - start Celery tasks with args and kwargs (as long as they can be expressed in JSON)
 - Journaling of who ran what tasks when and with what arguments
 
-![tasks.png](tasks.png)
+![https://github.com/bluedenim/vcelery-task-runner/blob/master/tasks.png](tasks.png)
 
 Optional controls:
 
@@ -100,7 +100,7 @@ Each run of a task through the UI is recorded into the model `vcelerytaskrunner.
 
 There is a default admin model set up for it:
 
-![taskrunrecord_admin.png](taskrunrecord_admin.png)
+![https://github.com/bluedenim/vcelery-task-runner/blob/master/taskrunrecord_admin.png](taskrunrecord_admin.png)
 
 ### Pruning old records
 

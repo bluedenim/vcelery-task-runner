@@ -1,7 +1,6 @@
 import json
 import logging
 from datetime import timedelta
-from time import sleep
 from typing import Any, Dict, List
 from urllib.parse import quote
 
@@ -54,8 +53,6 @@ class TasksAPIView(AccessMixin, APIView):
             entry = task_info.copy()
             entry['task_run_url'] = self._create_task_run_url(task_info)
             entries.append(entry)
-
-        sleep(7)
 
         return JsonResponse(data={"tasks": entries, "total_count": task_infos_w_count["count"]})
 
