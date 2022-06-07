@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 celery_app = settings.VCELERY_TASKRUN_CELERY_APP
 runnable_tasks = getattr(settings, "VCELERY_TASKRUN_RUNNABLE_TASKS", None)
+if runnable_tasks:
+    runnable_tasks = set(runnable_tasks)
 
 TaskRunCallable = Callable[[str, str, List[Any], Dict[str, Any]], None]
 
@@ -97,7 +99,7 @@ def run_and_record(
         def on_task_post_run(task_name: str, task_id: str, args: List[Any], kwargs: Dict[str, Any]) -> None:
             TaskRunRecord.objects.record_run_task(task_name, task_id, args, kwargs, user=user)
 
-        logger.info(f"runnable_tasks={runnable_tasks}, task={task}")
+        logger.debug(f"runnable_tasks={runnable_tasks}, task={task}")
         if runnable_tasks is not None and task not in runnable_tasks:
             raise ValidationError(f"task {task} is not runnable. Check task name and setting TASKRUN_RUNNABLE_TASKS.")
 
