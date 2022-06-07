@@ -43,6 +43,7 @@ Optional controls:
 
 ### Runnable Tasks
 
+#### VCELERY_TASKRUN_RUNNABLE_TASKS
 By default, all tasks are "runnable" in the UI. However, if you wan to restrict
 visibility to only a subset of the tasks, add into the project's `settings.py`:
 
@@ -58,6 +59,17 @@ If you set up an empty set, NOTHING will be runnable (quick way to disable the r
 VCELERY_TASKRUN_RUNNABLE_TASKS = {
 }
 ```
+
+#### VCELERY_SHOW_ONLY_RUNNABLE_TASKS
+Also by default, tasks not included in `VCELERY_TASKRUN_RUNNABLE_TASKS` will not be runnable but will be displayed in
+the list of tasks. If that is undesired, set the `VCELERY_SHOW_ONLY_RUNNABLE_TASKS` to `True`:
+
+If set, then only runnable tasks are shown in the UI:
+```
+# Tasks not in VCELERY_TASKRUN_RUNNABLE_TASKS will not be displayed in the task list
+VCELERY_SHOW_ONLY_RUNNABLE_TASKS = True
+```
+
 ### UI
 
 There is a set of pages ready to list/search task by name and to run tasks. To add them
@@ -116,6 +128,16 @@ Each time the **vcelerytaskrunner** app is initialized:
 
 If you don't explicitly define `VCELERY_TASK_RUN_RECORD_LONGEVITY` in your settings, the default value 
 `timedelta(weeks=4)` will be used, meaning entries older than 4 weeks will be removed.
+
+#### Permanent records
+
+If you want to keep TaskRunRecords forever (or clean them up manually), then set `VCELERY_TASK_RUN_RECORD_LONGEVITY` to 
+`"PERMANENT"`:
+
+```
+# Don't try to prune old TaskRunRecords
+VCELERY_TASK_RUN_RECORD_LONGEVITY = "PERMANENT"
+```
 
 ## TaskRunSignal
 

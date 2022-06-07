@@ -30,7 +30,7 @@
               </div>
           </div>
           <div class="card-body" v-if="!requestInProgress">
-              <div class="container right">
+              <div class="container right" v-if="!showRunnableOnly">
                   Runnable Only <input type="checkbox" v-model="taskFilter.runnableOnly"/>
               </div>
               <div class="container">
@@ -134,6 +134,7 @@ const app = createApp({
   data() {
     return {
       tasks: [],
+      showRunnableOnly: {{ show_runnable_only }},
       taskPagination: {offset: 0, limit: pageSize, count: 0},
       taskFilter: {mask: "", runnableOnly: true},
       searchEnabled: false,
