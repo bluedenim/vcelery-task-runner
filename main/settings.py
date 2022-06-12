@@ -154,4 +154,6 @@ VCELERY_TASKRUN_CELERY_APP = celery_app
 VCELERY_TASKRUN_RUNNABLE_TASKS = {
     "vcelerydev.tasks.he_he",
 }
+# VCELERY_SHOW_ONLY_RUNNABLE_TASKS = True
+# VCELERY_TASK_RUN_RECORD_LONGEVITY = "PERMANENT"
 ###########################################################

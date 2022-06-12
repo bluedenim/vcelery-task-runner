@@ -8,6 +8,9 @@ from django.utils.timezone import get_current_timezone
 logger = logging.getLogger(__name__)
 
 
+TASK_RUN_RECORD_LONGEVITY_PERMANENT = "PERMANENT"
+
+
 class AppConfig(AppConfig):
     name = 'vcelerytaskrunner'
 
@@ -27,21 +30,27 @@ class AppConfig(AppConfig):
 
     def ready(self):
         task_run_record_longevity = getattr(settings, "VCELERY_TASK_RUN_RECORD_LONGEVITY", None)
+        perform_prune = True
 
         if task_run_record_longevity is None:
             logger.warning("VCELERY_TASK_RUN_RECORD_LONGEVITY is not set or not a timedelta. Assuming 4 weeks")
             task_run_record_longevity = timedelta(weeks=4)
+        elif task_run_record_longevity == TASK_RUN_RECORD_LONGEVITY_PERMANENT:
+            perform_prune = False
         elif not isinstance(task_run_record_longevity, timedelta):
             raise ValueError("VCELERY_TASK_RUN_RECORD_LONGEVITY must be a timedelta.")
 
-        logger.info(f"Pruning TaskRunRecords older than {task_run_record_longevity}")
+        if perform_prune:
+            logger.info(f"Pruning TaskRunRecords older than {task_run_record_longevity}")
 
-        now = datetime.utcnow()
-        if settings.USE_TZ:
-            now = datetime.now(get_current_timezone())
-        if task_run_record_longevity.total_seconds() > 0:
-            prune_before = now - task_run_record_longevity
+            now = datetime.utcnow()
+            if settings.USE_TZ:
+                now = datetime.now(get_current_timezone())
+            if task_run_record_longevity.total_seconds() > 0:
+                prune_before = now - task_run_record_longevity
+            else:
+                prune_before = now + task_run_record_longevity
+
+            self._prune_task_run_records(prune_before)
         else:
-            prune_before = now + task_run_record_longevity
-
-        self._prune_task_run_records(prune_before)
+            logger.info("VCELERY_TASK_RUN_RECORD_LONGEVITY set to PERMANENT. Skipping pruning.")

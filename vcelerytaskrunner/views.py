@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from urllib.parse import quote
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, AccessMixin
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
@@ -28,6 +29,9 @@ logger = logging.getLogger(__name__)
 PERMISSIONS_CAN_SEE_TASKS = ["vcelerytaskrunner.view_taskrunrecord"]
 PERMISSIONS_CAN_SEE_AND_RUN_TASKS = ["vcelerytaskrunner.view_taskrunrecord", "vcelerytaskrunner.add_taskrunrecord"]
 
+VCELERY_SHOW_ONLY_RUNNABLE_TASKS = getattr(settings, "VCELERY_SHOW_ONLY_RUNNABLE_TASKS", False)
+
+
 
 class TasksAPIView(AccessMixin, APIView):
     def _create_task_run_url(self, task_info: TaskInfo) -> str:
@@ -38,10 +42,15 @@ class TasksAPIView(AccessMixin, APIView):
             return self.handle_no_permission()
 
         mask = request.GET.get("mask")
-        runnable_only_param = request.GET.get("runnableOnly")
         runnable_only = True
-        if not runnable_only_param or runnable_only_param.lower() == "false":
-            runnable_only = False
+
+        if VCELERY_SHOW_ONLY_RUNNABLE_TASKS:
+            logger.debug(f"VCELERY_SHOW_ONLY_RUNNABLE_TASKS is True, so ignoring runnableOnly param")
+        else:
+            runnable_only_param = request.GET.get("runnableOnly")
+            if not runnable_only_param or runnable_only_param.lower() == "false":
+                runnable_only = False
+
         entries = []
         offset = int(request.GET.get("offset") or 0)
         limit = int(request.GET.get("limit") or DEFAULT_PAGE_SIZE)
@@ -93,6 +102,12 @@ class TaskRunAPIView(AccessMixin, APIView):
 class TasksView(PermissionRequiredMixin, TemplateView):
     permission_required = PERMISSIONS_CAN_SEE_TASKS
     template_name = "vcelerytaskrunner/tasks.html"
+
+    def get_context_data(self, **kwargs):
+        context_data = {
+            "show_runnable_only": "true" if VCELERY_SHOW_ONLY_RUNNABLE_TASKS else "false",
+        }
+        return context_data
 
 
 class TaskRunForm(forms.Form):
