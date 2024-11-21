@@ -1,11 +1,19 @@
+import inspect
 import logging
 from collections import OrderedDict
-from typing import Dict, Iterator, Optional, Set
+from dataclasses import dataclass
+from inspect import Parameter, Signature
+from typing import Dict, Optional, Set, _GenericAlias, List, Any
 from typing_extensions import TypedDict
 
 from celery.local import Proxy
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DefaultValue:
+    value: Any
 
 
 class TaskInfo(TypedDict):
@@ -30,8 +38,37 @@ class LimitOffsetPagination(TypedDict):
 
 
 class TaskInfosWithCount(TypedDict):
-    task_infos: Iterator[TaskInfo]
+    task_infos: List[TaskInfo]
     count: int
+
+
+@dataclass
+class TaskParameter:
+    name: str
+    type_info: Optional[str] = None
+    default: Optional[DefaultValue] = None
+
+    @classmethod
+    def from_parameter(cls, parameter: Parameter) -> "TaskParameter":
+        annotation = parameter.annotation
+        type_info = None
+        if isinstance(annotation, _GenericAlias):
+            type_info = str(annotation).replace("typing.", "").replace("typing_extensions.", "")
+        elif annotation == Signature.empty:
+            pass
+        elif isinstance(annotation, type):
+            type_info = annotation.__name__
+        else:
+            type_info = str(annotation)
+
+        inst = cls(name=parameter.name, type_info=type_info)
+        if parameter.default != Parameter.empty:
+            val = parameter.default
+            if isinstance(val, str):
+                val = f"'{val}'"
+            inst.default = DefaultValue(value=val)
+
+        return inst
 
 
 class TaskRegistry:
@@ -81,8 +118,7 @@ class TaskRegistry:
         """
         Filters list of recognized task names against a white list of tasks names that are runnable.
 
-        :param mask: optional mask to filter by
-        :param runnable_only: optional flag to filter tasks for only ones runnable (default is True)
+        :param task_filter: optional filter parameters to use to filter results
         :param pagination: optional pagination for the results (defaults to the first DEFAULT_PAGE_SIZE entries)
 
         :return: TaskInfo on recognized tasks
@@ -119,7 +155,7 @@ class TaskRegistry:
 
     def get_task_info(self, task_name: str) -> Optional[TaskInfo]:
         """
-        Filters list of recognized task names against a exact task name.
+        Filters list of recognized task names against an exact task name.
 
         :param task_name: the task name to filter by
 
@@ -144,3 +180,21 @@ class TaskRegistry:
         :return: task matching the name (or None)
         """
         return self.tasks.get(task_name)
+
+    def get_task_parameters(self, task_name: str) -> List[TaskParameter]:
+        """
+        Looks up the parameters from a Celery task based on its name. If found, iterate through its parameters and
+        return information about them.
+
+        :param task_name: the name of the Celery task
+
+        :return: the parameters extracted (can be empty)
+        """
+        parameters = []
+
+        task = self.get_task(task_name)
+        if task:
+            signature = inspect.signature(task)
+            for _, parameter in signature.parameters.items():
+                parameters.append(TaskParameter.from_parameter(parameter))
+        return parameters
