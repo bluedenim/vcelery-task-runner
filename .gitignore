@@ -2,3 +2,4 @@
 *.egg-info
 dist
 db.sqlite3
+__pycache__
