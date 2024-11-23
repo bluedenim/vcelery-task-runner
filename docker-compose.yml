@@ -1,10 +1,9 @@
-version: '3'
 services:
   app:
     build: .
     command: >
-      sh -c "pipenv run python manage.py migrate && 
-             pipenv run python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     expose:
@@ -20,7 +19,7 @@ services:
   celery:
     build: .
     command: >
-      sh -c "pipenv run celery -A vcelerydev worker -l INFO"
+      sh -c "celery -A vcelerydev worker -l INFO"
     volumes:
       - ./:/code
     depends_on:
