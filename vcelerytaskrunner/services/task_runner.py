@@ -20,10 +20,13 @@ from vcelerytaskrunner.services.task_registry import (
 
 logger = logging.getLogger(__name__)
 
-celery_app = settings.VCELERY_TASKRUN_CELERY_APP
-runnable_tasks = getattr(settings, "VCELERY_TASKRUN_RUNNABLE_TASKS", None)
-if runnable_tasks:
-    runnable_tasks = set(runnable_tasks)
+CELERY_APP = settings.VCELERY_TASKRUN_CELERY_APP
+RUNNABLE_TASKS = getattr(settings, "VCELERY_TASKRUN_RUNNABLE_TASKS", None)
+if RUNNABLE_TASKS:
+    RUNNABLE_TASKS = set(RUNNABLE_TASKS)
+
+TASK_REGISTRY = TaskRegistry(CELERY_APP, RUNNABLE_TASKS)
+
 
 TaskRunCallable = Callable[[str, str, List[Any], Dict[str, Any]], None]
 
@@ -60,7 +63,7 @@ class TaskRunner:
         """
         Run a Celery task given its name and the parameters to pass to the task.
 
-        :param task: the task name
+        :param task_name: the task name
         :param args: optional position arguments to the task
         :param kwargs: optional keyword arguments (kwargs) to the task
         :param user: optional User running the task
@@ -72,7 +75,7 @@ class TaskRunner:
         if task:
             result = task.apply_async(args=args, kwargs=kwargs, countdown=delay.total_seconds() if delay else None)
             TaskRunSignal.send_robust(
-                sender=self.__class__, task_name=task_name, task_id=result.id, args=args, kwargs=kwargs, user=user
+                self.__class__, task_name=task_name, task_id=result.id, args=args, kwargs=kwargs, user=user
             )
             if self.post_task_run:
                 self.post_task_run(task_name, result.id, args, kwargs)
@@ -99,12 +102,12 @@ def run_and_record(
         def on_task_post_run(task_name: str, task_id: str, args: List[Any], kwargs: Dict[str, Any]) -> None:
             TaskRunRecord.objects.record_run_task(task_name, task_id, args, kwargs, user=user)
 
-        logger.debug(f"runnable_tasks={runnable_tasks}, task={task}")
-        if runnable_tasks is not None and task not in runnable_tasks:
+        logger.debug(f"runnable_tasks={RUNNABLE_TASKS}, task={task}")
+        if RUNNABLE_TASKS is not None and task not in RUNNABLE_TASKS:
             raise ValidationError(f"task {task} is not runnable. Check task name and setting TASKRUN_RUNNABLE_TASKS.")
 
         try:
-            task_registry = TaskRegistry(celery_app, runnable_tasks)
+            task_registry = TaskRegistry(CELERY_APP, RUNNABLE_TASKS)
             task_runner = TaskRunner(task_registry, post_task_run=on_task_post_run)
 
             result = task_runner.run_task(task, args, kwargs, user=user, delay=delay)
@@ -141,13 +144,12 @@ def get_task_infos(task_filter: TaskFilter, pagination: Optional[LimitOffsetPagi
     """
     Collects a list of runnable tasks' names and return them.
 
-    :param mask: optional search mask to filter by
-    :param runnable_only: optional flag to filter tasks for only ones runnable
-    :param pagination" optional pagination options
+    :param task_filter: filtering parameters for tasks
+    :param pagination: optional pagination options
 
     :return: tasks that can be run by run_and_record() function
     """
-    task_registry = TaskRegistry(celery_app, runnable_tasks)
+    task_registry = TaskRegistry(CELERY_APP, RUNNABLE_TASKS)
 
     return task_registry.get_task_infos(task_filter, pagination=pagination)
 
@@ -160,5 +162,5 @@ def get_task_info(task_name: str) -> Optional[TaskInfo]:
 
     :return: a TaskInfo if found
     """
-    task_registry = TaskRegistry(celery_app, runnable_tasks)
+    task_registry = TaskRegistry(CELERY_APP, RUNNABLE_TASKS)
     return task_registry.get_task_info(task_name)

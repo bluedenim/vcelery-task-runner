@@ -6,7 +6,7 @@
   <div class="container">
       <div class="card">
           <div id="args-instructions" class="card-header">
-              <h2>Instructions on how to pass parameters to the task:</h2>
+              <h3>Instructions on how to pass parameters to the task:</h3>
               <p>Use the <code>args</code> and <code>kwargs</code> concepts as described for <a href="https://docs.celeryq.dev/en/stable/userguide/calling.html#example">apply_async()</a>.
                   However, the values need to be provided as JSON values.
               </p>
@@ -22,7 +22,7 @@
               </p>
           </div>
           <div class="card-body">
-              <h2>Run Task Parameters</h2>
+              <h3>Run Task Parameters</h3>
               <form action="{% url 'vcelery-task-run' %}" method="post">
                   <div id="non-field-form-errors" class="field-error-msg">
                   {{ form.non_field_errors }}
@@ -38,24 +38,44 @@
                               </div>
                           </div>
                       </div>
+                      {% if task_param_display %}
+                      <div class="row">
+                          <div class="col">
+                              <div class="fieldWrapper">
+                                  <div>
+                                      Parameters for this task:
+                                  </div>
+                                  <pre>{{ task_param_display }}</pre>
+                              </div>
+                          </div>
+                      </div>
+                      {% endif %}
+                      {% if task_param_display_positional %}
                       <div class="row">
                           <div class="col">
                               <div class="fieldWrapper">
                                 <label for="{{ form.args.id_for_label }}">Positional parameters (args):</label>
-                                {{ form.args }}
+                                  <div><pre>{{ task_param_display_positional }}</pre></div>
+                                  {{ form.args }}
                                 <div class="field-error-msg">{{ form.args.errors }}</div>
                               </div>
                           </div>
                       </div>
+                      {% endif %}
+                      {% if task_param_display_keyword %}
                       <div class="row">
                           <div class="col">
                               <div class="fieldWrapper">
-                                <label for="{{ form.task.id_for_label }}">Keyword parameters (kwargs):</label>
+                                <label for="{{ form.task.id_for_label }}">Keyword parameters (optional kwargs):</label>
+                                {% if task_param_display_keyword %}
+                                  <div><pre>{{ task_param_display_keyword }}</pre></div>
+                                {% endif %}
                                 {{ form.kwargs }}
                                 <div class="field-error-msg">{{ form.kwargs.errors }}</div>
                               </div>
                           </div>
                       </div>
+                      {% endif %}
                       <div class="row">
                           <div id="run-task-submit-container" class="col right">
                               <input class="btn btn-success" type="submit" value="Submit" />

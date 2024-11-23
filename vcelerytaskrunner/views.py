@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Optional
 from urllib.parse import quote
 
 from django import forms
@@ -18,8 +18,9 @@ from django.views.generic import TemplateView, FormView
 from rest_framework.exceptions import ParseError
 
 from vcelerytaskrunner.models import TASKNAME_MAXLEN
-from vcelerytaskrunner.services.task_registry import TaskInfo, DEFAULT_PAGE_SIZE, LimitOffsetPagination, TaskFilter
-from vcelerytaskrunner.services.task_runner import run_and_record, get_task_infos, get_task_info
+from vcelerytaskrunner.services.task_registry import TaskInfo, DEFAULT_PAGE_SIZE, LimitOffsetPagination, TaskFilter, \
+    TaskRegistry, TaskParameter
+from vcelerytaskrunner.services.task_runner import run_and_record, get_task_infos, get_task_info, TASK_REGISTRY
 from rest_framework.views import APIView
 
 
@@ -34,7 +35,9 @@ VCELERY_SHOW_ONLY_RUNNABLE_TASKS = getattr(settings, "VCELERY_SHOW_ONLY_RUNNABLE
 
 
 class TasksAPIView(AccessMixin, APIView):
-    def _create_task_run_url(self, task_info: TaskInfo) -> str:
+
+    @staticmethod
+    def _create_task_run_url(task_info: TaskInfo) -> str:
         return f"{reverse('vcelery-task-run')}?task={quote(task_info['name'])}"
 
     def get(self, request):
@@ -129,7 +132,7 @@ class TaskRunForm(forms.Form):
         args = self.cleaned_data.get("args") or "[]"
         try:
             args = json.loads(args)
-        except Exception as e:
+        except Exception:
             raise ValidationError("Invalid JSON")
 
         if not isinstance(args, list):
@@ -140,7 +143,7 @@ class TaskRunForm(forms.Form):
         kwargs = self.cleaned_data.get("kwargs") or "{}"
         try:
             kwargs = json.loads(kwargs)
-        except Exception as e:
+        except Exception:
             raise ValidationError("Invalid JSON")
 
         if not isinstance(kwargs, dict):
@@ -155,42 +158,67 @@ class TaskRunFormView(PermissionRequiredMixin, FormView):
     form_class = TaskRunForm
 
     def get(self, request, *args, **kwargs):
-        task = request.GET.get("task")
-
-        if task:
-            task_info = get_task_info(task)
-        if not task or not task_info or not task_info['runnable']:
+        task_name: Optional[str] = request.GET.get("task")
+        task_info: Optional[TaskInfo] = None
+        if task_name:
+            task_info = get_task_info(task_name)
+        if not task_name or not task_info or not task_info['runnable']:
             logger.error(
-                "Non-existent or not runnable task %s requested by %s", task, request.user
+                "Non-existent or not runnable task %s requested by %s", task_name, request.user
             )
             return HttpResponseRedirect(reverse("vcelery-tasks"))
 
-        self.task = task
+        # Store this so that get_context_data() can access it
         return super().get(request, args, kwargs)
+
+    @staticmethod
+    def _format_parameter_display_value(task_parameters: List[TaskParameter]) -> Tuple[str, str]:
+        positional_params = []
+        keyword_params = []
+
+        for task_param in task_parameters:
+            display_value = task_param.name
+            if task_param.type_info:
+                display_value += f": {task_param.type_info}"
+            if task_param.default:
+                display_value += f" = {task_param.default.value}"
+                keyword_params.append(display_value)
+            else:
+                positional_params.append(display_value)
+
+        return ', '.join(positional_params), ', '.join(keyword_params),
 
     def get_context_data(self, **kwargs):
         """Insert the form into the context dict."""
+        task_name = self.request.GET.get("task")
         context_data = super().get_context_data(**kwargs)
 
         # if a task name was provided, then prefill
-        if hasattr(self, "task"):
-            context_data["form"]["task"].initial = self.task
+        if task_name:
+            task_registry: TaskRegistry = TASK_REGISTRY
+            task_params = task_registry.get_task_parameters(task_name)
+
+            context_data["task_params"] = task_params
+            positional, keyword = self._format_parameter_display_value(task_params)
+            if positional:
+                context_data["task_param_display"] = ", ".join([positional, keyword])
+            else:
+                context_data["task_param_display"] = keyword
+            context_data["task_param_display_positional"] = positional
+            context_data["task_param_display_keyword"] = keyword
+
+        context_data["form"]["task"].initial = task_name
 
         return context_data
 
-    def post(self, request, *args, **kwargs):
-        # Just so we can record the request.user to be used by form_valid later
-        self.user = request.user
-
-        return super().post(request, args, kwargs)
-
     def form_valid(self, form):
+        user = self.request.user
         task_from_form = form.cleaned_data['task']
         args_from_form = form.cleaned_data['args']
         kwargs_from_form = form.cleaned_data['kwargs']
 
         try:
-            result = run_and_record(task_from_form, args=args_from_form, kwargs=kwargs_from_form, user=self.user)
+            result = run_and_record(task_from_form, args=args_from_form, kwargs=kwargs_from_form, user=user)
             url = reverse("vcelery-task-run-result", kwargs={'task_id': result.id})
             return HttpResponseRedirect(url)
         except Exception as e:
