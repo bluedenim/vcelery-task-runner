@@ -145,15 +145,20 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
-
+# https://docs.celeryq.dev/en/stable/userguide/calling.html#calling-serializers
+# https://docs.celeryq.dev/en/latest/userguide/security.html#serializers
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#general-settings
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_ACCEPT_CONTENT = ["pickle"]
+CELERY_RESULT_ACCEPT_CONTENT = ["pickle"]
 
 # vcelery-task-runner configuration #######################
 from vcelerydev import celery_app
 
 VCELERY_TASKRUN_CELERY_APP = celery_app
-VCELERY_TASKRUN_RUNNABLE_TASKS = {
-    "vcelerydev.tasks.he_he",
-}
+# VCELERY_TASKRUN_RUNNABLE_TASKS = {
+#     "vcelerydev.tasks.to_timezone",
+# }
 # VCELERY_SHOW_ONLY_RUNNABLE_TASKS = True
 # VCELERY_TASK_RUN_RECORD_LONGEVITY = "PERMANENT"
 ###########################################################

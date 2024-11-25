@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.decorators.csrf import csrf_exempt
 
-from vcelerytaskrunner.views import TaskRunAPIView, TasksAPIView, TasksView, TaskRunFormView, TaskRunResultView
+from vcelerytaskrunner.views import TaskRunAPIView, TasksAPIView, TasksView, TaskRunFormView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,8 +27,9 @@ urlpatterns = [
 
     path('tasks/', TasksView.as_view(), name="vcelery-tasks"),
     path('task_run/', TaskRunFormView.as_view(), name="vcelery-task-run"),
-    path('task_run_result/<task_id>/', TaskRunResultView.as_view(), name="vcelery-task-run-result"),
+
 
     path('api/tasks/', TasksAPIView.as_view(), name="vcelery-api-tasks"),
-    path('api/task_run/', csrf_exempt(TaskRunAPIView.as_view()), name="vcelery-api-task-run")
+    # The following are not completed yet.
+    # path('api/task_run/', csrf_exempt(TaskRunAPIView.as_view()), name="vcelery-api-task-run")
 ]

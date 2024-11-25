@@ -1,4 +1,6 @@
+## The following requirements were added by pip freeze:
 amqp==5.3.1
+annotated-types==0.7.0
 asgiref==3.8.1
 backports.zoneinfo==0.2.1
 billiard==4.2.1
@@ -10,8 +12,12 @@ click-repl==0.3.0
 Django==4.2.16
 djangorestframework==3.15.2
 kombu==5.4.2
+msgpack==1.0.7
 prompt_toolkit==3.0.48
+pydantic==2.10.1
+pydantic_core==2.27.1
 python-dateutil==2.9.0.post0
+PyYAML==6.0.2
 six==1.16.0
 sqlparse==0.5.2
 typing_extensions==4.12.2
