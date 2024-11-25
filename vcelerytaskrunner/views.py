@@ -1,25 +1,31 @@
 import json
 import logging
-from datetime import timedelta
-from typing import Any, Dict, List, Tuple, Optional
+from datetime import datetime, timedelta
+from inspect import Parameter
+from typing import Any, Dict, List, Optional, _GenericAlias
+
 from urllib.parse import quote
 
-from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import PermissionRequiredMixin, AccessMixin
-from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
-from django.forms.utils import ErrorList
-from django.http import JsonResponse, HttpResponseRedirect
+from django.core.exceptions import ValidationError
+from django.http import JsonResponse, HttpResponseRedirect, HttpRequest, HttpResponse
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView
+from pydantic import BaseModel
 
 from rest_framework.exceptions import ParseError
 
-from vcelerytaskrunner.models import TASKNAME_MAXLEN
-from vcelerytaskrunner.services.task_registry import TaskInfo, DEFAULT_PAGE_SIZE, LimitOffsetPagination, TaskFilter, \
-    TaskRegistry, TaskParameter
+from vcelerytaskrunner.services.task_registry import (
+    TaskInfo,
+    DEFAULT_PAGE_SIZE,
+    LimitOffsetPagination,
+    TaskFilter,
+    TaskRegistry,
+    TaskParameter,
+)
 from vcelerytaskrunner.services.task_runner import run_and_record, get_task_infos, get_task_info, TASK_REGISTRY
 from rest_framework.views import APIView
 
@@ -35,6 +41,9 @@ VCELERY_SHOW_ONLY_RUNNABLE_TASKS = getattr(settings, "VCELERY_SHOW_ONLY_RUNNABLE
 
 
 class TasksAPIView(AccessMixin, APIView):
+    """
+    Returns a list of Celery tasks
+    """
 
     @staticmethod
     def _create_task_run_url(task_info: TaskInfo) -> str:
@@ -70,8 +79,11 @@ class TasksAPIView(AccessMixin, APIView):
 
 
 class TaskRunAPIView(AccessMixin, APIView):
-    # curl -d "{\"kwargs\": {\"name\":\"John\",\"an_int\":56}}" -H "Content-Type: application/json" -u root:nothing1234 -XPOST http://localhost:8000/api/task_run/?task=vcelerydev.tasks.ha_ha_ha
-    # curl -d "{\"kwargs\": {\"name\":\"John\",\"an_int\":56}}" -H "Content-Type: application/json" -u van:nothing1234 -XPOST http://localhost:8000/api/task_run/?task=vcelerydev.tasks.he_he
+    """
+    Undocumented and not fully supported (yet).
+    """
+    # curl -d "{\"kwargs\": {\"to_name\":\"John\"}}" -H "Content-Type: application/json" -u root:nothing1234 -XPOST http://localhost:8000/api/task_run/?task=vcelerydev.tasks.say_hello
+    # curl -d "{\"kwargs\": {\"to_name\":\"John\"}}" -H "Content-Type: application/json" -u van:nothing1234 -XPOST http://localhost:8000/api/task_run/?task=vcelerydev.tasks.say_hello
 
     def post(self, request):
         if not request.user.has_perms(PERMISSIONS_CAN_SEE_AND_RUN_TASKS):
@@ -103,6 +115,9 @@ class TaskRunAPIView(AccessMixin, APIView):
 
 @method_decorator(login_required, name='dispatch')
 class TasksView(PermissionRequiredMixin, TemplateView):
+    """
+    Main view that shows all the tasks.
+    """
     permission_required = PERMISSIONS_CAN_SEE_TASKS
     template_name = "vcelerytaskrunner/tasks.html"
 
@@ -113,51 +128,15 @@ class TasksView(PermissionRequiredMixin, TemplateView):
         return context_data
 
 
-class TaskRunForm(forms.Form):
-    task = forms.CharField(label="Task", max_length=TASKNAME_MAXLEN)
-    args = forms.CharField(label="Args", max_length=3000, widget=forms.Textarea, required=False)
-    kwargs = forms.CharField(label="KWArgs", max_length=5000, widget=forms.Textarea, required=False)
-
-    def clean_task(self) -> str:
-        task_name = self.cleaned_data.get("task")
-        if task_name:
-            task_info = get_task_info(task_name)
-            if not task_info or not task_info['runnable']:
-                raise ValidationError(f"Task is not found or runnable.")
-        else:
-            raise ValidationError("Need a task name.")
-        return task_name
-
-    def clean_args(self) -> List[Any]:
-        args = self.cleaned_data.get("args") or "[]"
-        try:
-            args = json.loads(args)
-        except Exception:
-            raise ValidationError("Invalid JSON")
-
-        if not isinstance(args, list):
-            raise ValidationError("Should be a list of parameters. Read the instructions again.")
-        return args
-
-    def clean_kwargs(self) -> Dict[str, Any]:
-        kwargs = self.cleaned_data.get("kwargs") or "{}"
-        try:
-            kwargs = json.loads(kwargs)
-        except Exception:
-            raise ValidationError("Invalid JSON")
-
-        if not isinstance(kwargs, dict):
-            raise ValidationError("Should be a dict of named parameters. Read the instructions again.")
-        return kwargs
-
-
 @method_decorator(login_required, name='dispatch')
-class TaskRunFormView(PermissionRequiredMixin, FormView):
+class TaskRunFormView(PermissionRequiredMixin, TemplateView):
+    """
+    View where the user can enter parameters to invoke a task.
+    """
     permission_required = PERMISSIONS_CAN_SEE_AND_RUN_TASKS
     template_name = "vcelerytaskrunner/task_run.html"
-    form_class = TaskRunForm
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         task_name: Optional[str] = request.GET.get("task")
         task_info: Optional[TaskInfo] = None
         if task_name:
@@ -168,28 +147,28 @@ class TaskRunFormView(PermissionRequiredMixin, FormView):
             )
             return HttpResponseRedirect(reverse("vcelery-tasks"))
 
-        # Store this so that get_context_data() can access it
         return super().get(request, args, kwargs)
 
     @staticmethod
-    def _format_parameter_display_value(task_parameters: List[TaskParameter]) -> Tuple[str, str]:
-        positional_params = []
-        keyword_params = []
+    def _format_parameter_display_value(task_parameters: List[TaskParameter]) -> List[str]:
+        param_displays: List[str] = []
 
         for task_param in task_parameters:
             display_value = task_param.name
             if task_param.type_info:
                 display_value += f": {task_param.type_info}"
             if task_param.default:
-                display_value += f" = {task_param.default.value}"
-                keyword_params.append(display_value)
+                value = task_param.default.value
+                if isinstance(value, str):
+                    value = f"'{value}'"
+                display_value += f" = {value}"
+                param_displays.append(display_value)
             else:
-                positional_params.append(display_value)
+                param_displays.append(display_value)
 
-        return ', '.join(positional_params), ', '.join(keyword_params),
+        return param_displays
 
-    def get_context_data(self, **kwargs):
-        """Insert the form into the context dict."""
+    def get_context_data(self, **kwargs) -> Dict[str, Any]:
         task_name = self.request.GET.get("task")
         context_data = super().get_context_data(**kwargs)
 
@@ -197,44 +176,99 @@ class TaskRunFormView(PermissionRequiredMixin, FormView):
         if task_name:
             task_registry: TaskRegistry = TASK_REGISTRY
             task_params = task_registry.get_task_parameters(task_name)
-
+            
             context_data["task_params"] = task_params
-            positional, keyword = self._format_parameter_display_value(task_params)
-            if positional:
-                context_data["task_param_display"] = ", ".join([positional, keyword])
-            else:
-                context_data["task_param_display"] = keyword
-            context_data["task_param_display_positional"] = positional
-            context_data["task_param_display_keyword"] = keyword
+            param_displays = self._format_parameter_display_value(task_params)
+            
+            context_data["task_param_displays"] = param_displays
+            context_data["task"] = task_name
 
-        context_data["form"]["task"].initial = task_name
+        # Copy the task_id from the cookie (set from a post that redirected here) to the context to be rendered.
+        task_id = self.request.COOKIES.pop("task_id", None)
+        if task_id:
+            context_data["task_id"] = task_id
+
+        # Same for error message
+        error_message = self.request.COOKIES.pop("error_message", None)
+        if error_message:
+            context_data["error_message"] = error_message
 
         return context_data
 
-    def form_valid(self, form):
-        user = self.request.user
-        task_from_form = form.cleaned_data['task']
-        args_from_form = form.cleaned_data['args']
-        kwargs_from_form = form.cleaned_data['kwargs']
+    def render_to_response(self, context, **response_kwargs) -> HttpResponse:
+        response = super().render_to_response(context, **response_kwargs)
 
+        # We're moved the task_id to the context and rendered the contents by now, so there is no more need for
+        # the cookie.
+        response.delete_cookie("task_id")
+        response.delete_cookie("error_message")
+
+        return response
+
+    def _deserialize_task_param_value(self, task_param: TaskParameter, value: Any) -> Any:
+        has_default = task_param.default is not None
+        deserialized_value = value
+        if value:
+            if isinstance(task_param.annotation, _GenericAlias):
+                # This only works for values that can be deserialized from JSON e.g. List[int] and List[str]
+                deserialized_value = json.loads(value)
+            elif issubclass(task_param.annotation, datetime):
+                # fromisoformat() doesn't know how to parse "Z"
+                if value.endswith("Z"):
+                    value = value[:len(value)-1] + "-00:00"
+                deserialized_value = datetime.fromisoformat(value)
+            elif issubclass(task_param.annotation, BaseModel):
+                deserialized_value = task_param.annotation.model_validate_json(value)
+            elif task_param.annotation == Parameter.empty:
+                logger.warning(f"No type hint available for {task_param.name}. Using str.")
+                deserialized_value = str(value)
+            else:
+                deserialized_value = task_param.annotation(value)
+        else:
+            if not has_default:
+                # Missing parameter
+                raise ValueError(f"Missing value for {task_param.name}")
+            else:
+                deserialized_value = task_param.default.value
+        return deserialized_value
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        task_name = request.POST.get("task")
+        
         try:
-            result = run_and_record(task_from_form, args=args_from_form, kwargs=kwargs_from_form, user=user)
-            url = reverse("vcelery-task-run-result", kwargs={'task_id': result.id})
-            return HttpResponseRedirect(url)
+            if task_name:
+                task_registry: TaskRegistry = TASK_REGISTRY
+                task_params = task_registry.get_task_parameters(task_name)
+                
+                call_args = []
+                call_kwargs= {}
+                for task_param in task_params:
+                    posted_value = request.POST.get(task_param.name)
+                    param_value = self._deserialize_task_param_value(task_param, posted_value)
+                
+                    if task_param.default is not None:
+                        call_kwargs[task_param.name] = param_value
+                    else:
+                        call_args.append(param_value)
+                    
+                logger.info(f"Calling task {task_name} with args={call_args}, kwargs={call_kwargs}")
+                
+                result = task_registry.get_task(task_name).apply_async(args=call_args, kwargs=call_kwargs)
+                
+                # Redirect back to myself but with a cookie value for the Celery task ID
+                url = f"{reverse('vcelery-task-run')}?task={task_name}"
+                response = HttpResponseRedirect(url)
+                response.set_cookie("task_id", result.id)
+                return response
+            else:
+                raise ValueError(f"Missing task property from {request.POST}")
         except Exception as e:
-            errors = form._errors.setdefault(NON_FIELD_ERRORS, ErrorList())
-            errors.append(f"Error: {e}")
-            return self.form_invalid(form)
+            msg = f"Error calling {task_name}: {e}"
+            logger.exception(msg)
 
 
-class TaskRunResultView(TemplateView):
-    template_name = "vcelerytaskrunner/task_run_result.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context.update({
-            "task_id": kwargs.get("task_id"),
-        })
-
-        return context
+            # Redirect back to myself but with a cookie value for the error message
+            url = f"{reverse('vcelery-task-run')}?task={task_name}"
+            response = HttpResponseRedirect(url)
+            response.set_cookie("error_message", str(e))
+            return response

@@ -43,7 +43,7 @@
                       </thead>
                       <tbody>
                           <tr v-for="task in tasks">
-                              <td v-if="task.runnable"><div class="right"><a v-bind:href="task.task_run_url">Run...</a></div></td>
+                              <td v-if="task.runnable"><div class="right"><a class="pill" style="--border-color: #C7ECB8; --color: white; --background-color: #198754;" v-bind:href="task.task_run_url">Run...</a></div></td>
                               <td v-else="task.runnable"><div class="right">No</div></td>
                               <td><code>{% templatetag openvariable %}task.name{% templatetag closevariable %}</code></td>
                           </tr>

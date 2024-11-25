@@ -58,9 +58,54 @@ a {
 
 a:hover {
     color: #59B833;
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 ul.nav {
     font-weight: bold;
+}
+
+.card-header {
+    background-color: #C7ECB8;
+}
+
+.card-body {
+    background-color: #F2FCEE;
+}
+
+.vert-gaps {
+    margin-top: var(--top);
+    margin-bottom: var(--bottom);
+}
+
+.grid-x-max {
+    display: grid;
+    gap: var(--gap-size);
+    grid-template-columns: var(--left-column-width) 1fr;
+}
+
+.grid-x-max .full-width {
+    width: 100%;
+}
+
+.fixed {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.right-align {
+    text-align: right;
+}
+
+.inset {
+    margin: 5px;
+    border: 1px solid var(--border-color);
+    padding: 5px;
+}
+
+a.pill {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--background-color);
+    color: var(--color);
+    padding: 3px;
 }
