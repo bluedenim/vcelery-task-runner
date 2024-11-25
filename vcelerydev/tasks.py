@@ -1,58 +1,50 @@
+from datetime import datetime
+from backports.zoneinfo import ZoneInfo
 from celery import shared_task
 from celery.utils.log import get_task_logger
+from typing_extensions import Annotated
+
+from vcelerydev.models.payment import Payment
 
 logger = get_task_logger(__name__)
 
 
-@shared_task
-def ha_ha_ha(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+PACIFIC_TZ_NAME = "America/Los_Angeles"
 
 
 @shared_task
-def ha_ha_ha2(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+def say_hello(to_name: str = "My little friend") -> str:
+    message = f"Hello, {to_name}."
+    logger.info(message)
+    return message
 
 
 @shared_task
-def ha_ha_ha3(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+def count_for_me(my_name: str, count_to: int, step: int = 1) -> None:
+    logger.info(f"Counting to {count_to} with step {step} for {my_name}:")
+    for i in range(0, count_to+1, step):
+        logger.info(f" {i}")
 
 
 @shared_task
-def ha_ha_ha4(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+def to_timezone(dt: datetime, to_tz: str = PACIFIC_TZ_NAME) -> datetime:
+    tz = ZoneInfo(to_tz)
+    new_dt = dt.astimezone(tz)
+    logger.info(f"{dt.isoformat()} in {tz} is {new_dt.isoformat()}")
 
 
 @shared_task
-def ha_ha_ha5(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+def process_incoming_payment(payer: str, payment: Payment) -> None:
+    logger.info(f"Processing incoming payment from {payer}: {payment}")
 
 
 @shared_task
-def ha_ha_ha6(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
+def legacy_task(a_name, an_integer):
+    message = f"This is a name: {a_name}, and this is a number: {0 + an_integer}."
+    logger.info(message)
+    return message
 
 
 @shared_task
-def ha_ha_ha7(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
-
-
-@shared_task
-def ha_ha_ha8(name:str = "Alan Smithee", an_int: int = 0) -> bool:
-    logger.info(f"ha_ha_ha: {name}, {an_int}")
-    return True
-
-
-@shared_task
-def he_he(name:str = "Alan Smithee", an_int: int = 40) -> bool:
-    logger.info(f"he_he: {name}, {an_int}")
-    return True
+def task_with_annotated_param(annotated_var: Annotated[int, "the annotated variable"])  -> None:
+    logger.info(f"task with annotated param called with {0 + annotated_var}.")
