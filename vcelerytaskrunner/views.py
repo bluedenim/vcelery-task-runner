@@ -116,7 +116,8 @@ class TaskRunAPIView(AccessMixin, APIView):
 @method_decorator(login_required, name='dispatch')
 class TasksView(PermissionRequiredMixin, TemplateView):
     """
-    Main view that shows all the tasks.
+    Main view that shows all the tasks. Note that the main logic of querying for tasks and pagination is done via
+    Javascript calling TasksAPIView above. This view simply serves up the page with Javascript.
     """
     permission_required = PERMISSIONS_CAN_SEE_TASKS
     template_name = "vcelerytaskrunner/tasks.html"
@@ -137,6 +138,12 @@ class TaskRunFormView(PermissionRequiredMixin, TemplateView):
     template_name = "vcelerytaskrunner/task_run.html"
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        """
+        Displays the form and/or run results.
+
+        :param request: the HttpRequest. It is assumed that auth is done and request.user exists. This method works
+            together with get_context_data().
+        """
         task_name: Optional[str] = request.GET.get("task")
         task_info: Optional[TaskInfo] = None
         if task_name:
@@ -169,6 +176,9 @@ class TaskRunFormView(PermissionRequiredMixin, TemplateView):
         return param_displays
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
+        """
+        Hook for TemplateView to return the context dict for rendering.
+        """
         task_name = self.request.GET.get("task")
         context_data = super().get_context_data(**kwargs)
 
@@ -233,6 +243,15 @@ class TaskRunFormView(PermissionRequiredMixin, TemplateView):
         return deserialized_value
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        """
+        Handles a form submission to run a Celery task. Once the task is queued to run via Celery, the "task_id"
+        returned by Celery (or "error_message") is stored in the cookie jar and redirected to get() above to render
+        the results.
+
+        :param request: the HttpRequest to extract information about the task to run. Expected POST data:
+            task -- the fully qualified name of the Celery task.
+            request.POST -- additional parameters for the task which depends on the signature of the task function.
+        """
         task_name = request.POST.get("task")
         
         try:
