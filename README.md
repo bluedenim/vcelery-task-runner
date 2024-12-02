@@ -18,7 +18,7 @@ Optional controls:
 - Django permission control around who can see and run tasks
 
 ## Run Result
-<img width="1048" alt="run_result" src="https://github.com/user-attachments/assets/5179fb84-f02c-4e22-8c31-c9f7229c6839">
+![run_result_task_id](https://github.com/user-attachments/assets/5e4f0091-b109-4d55-b780-c3919d8fd5af)
 
 
 ## Installation
@@ -119,11 +119,13 @@ You are free to use groups to set this up.
 
 ## TaskRunRecords
 
-Each run of a task through the UI is recorded into the model `vcelerytaskrunner.models.TaskRunRecord`. 
+Each run of a task through the UI is recorded into the model `vcelerytaskrunner.models.TaskRunRecord`:
 
-There is a default admin model set up for it:
+![task_run_record_list](https://github.com/user-attachments/assets/8ecf1e9b-b30e-4538-997a-c2e528283b24)
 
-![taskrunrecord_admin.png](https://github.com/bluedenim/vcelery-task-runner/blob/master/taskrunrecord_admin.png)
+![task_run_record](https://github.com/user-attachments/assets/94d2620d-d990-46c6-9592-b10ef9383955)
+
+
 
 ### Pruning old records
 
