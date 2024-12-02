@@ -33,6 +33,7 @@ def to_timezone(dt: datetime, to_tz: str = PACIFIC_TZ_NAME) -> datetime:
     tz = ZoneInfo(to_tz)
     new_dt = dt.astimezone(tz)
     logger.info(f"to_timezone: {dt.isoformat()} in {tz} is {new_dt.isoformat()}")
+    return new_dt
 
 
 @shared_task
@@ -42,7 +43,7 @@ def process_incoming_payment(payer: str, payment: Payment) -> None:
 
 @shared_task
 def legacy_task(a_name, an_integer):
-    message = f"legacy_task: This is a name: {a_name}, and this is a number: {0 + an_integer}."
+    message = f"legacy_task: This is a_name: {a_name}, and this is an_integer: {an_integer}."
     logger.info(message)
     return message
 
