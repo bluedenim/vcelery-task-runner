@@ -252,8 +252,8 @@ class TaskRunFormView(PermissionRequiredMixin, TemplateView):
                         call_args.append(param_value)
                     
                 logger.info(f"Calling task {task_name} with args={call_args}, kwargs={call_kwargs}")
-                
-                result = task_registry.get_task(task_name).apply_async(args=call_args, kwargs=call_kwargs)
+
+                result = run_and_record(task_name, call_args, call_kwargs, request.user)
                 
                 # Redirect back to myself but with a cookie value for the Celery task ID
                 url = f"{reverse('vcelery-task-run')}?task={task_name}"
