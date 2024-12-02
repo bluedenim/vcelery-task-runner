@@ -1,16 +1,24 @@
 # Van's Celery Task Runner
 
 This set of tools will present a UI to:
-- search Celery tasks
-- start Celery tasks with args and kwargs (as long as they can be expressed in JSON)
-- Journaling of who ran what tasks when and with what arguments
+- search Celery tasks.
+- start Celery tasks with parameters.
+- Journaling of who ran what tasks.
 
-![tasks.png](https://github.com/bluedenim/vcelery-task-runner/blob/master/tasks.png)
+## Autodiscovery of Runnable Tasks
+<img width="915" alt="tasks_list" src="https://github.com/user-attachments/assets/9f3fa308-8b50-4412-a172-f813348107df">
+
+## Task Running Form
+<img width="1110" alt="task_run_form" src="https://github.com/user-attachments/assets/57c6c6f4-c72d-4c21-8a04-8975caa976c3">
+
 
 Optional controls:
 
 - Whitelisting task names to only surface a subset of the tasks
 - Django permission control around who can see and run tasks
+
+## Run Result
+<img width="1048" alt="run_result" src="https://github.com/user-attachments/assets/5179fb84-f02c-4e22-8c31-c9f7229c6839">
 
 
 ## Installation
