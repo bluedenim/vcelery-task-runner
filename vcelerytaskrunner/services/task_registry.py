@@ -3,8 +3,19 @@ import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from inspect import Parameter, Signature
-from typing import Dict, Optional, Set, _GenericAlias, List, Any
-from typing_extensions import TypedDict
+from typing import Dict, Optional, Set, _GenericAlias, List, Any, Type
+try:
+    from typing_extensions import TypedDict
+except:
+    from typing import TypedDict
+
+try:
+    from typing_extensions import _AnnotatedAlias
+except:
+    from typing import _AnnotatedAlias
+
+from pydantic import BaseModel
+
 
 from celery.local import Proxy
 
@@ -45,27 +56,38 @@ class TaskInfosWithCount(TypedDict):
 @dataclass
 class TaskParameter:
     name: str
+    annotation : Type
     type_info: Optional[str] = None
+    is_base_model: bool = False
+    json_schema: Optional[Dict] = None
     default: Optional[DefaultValue] = None
 
     @classmethod
     def from_parameter(cls, parameter: Parameter) -> "TaskParameter":
         annotation = parameter.annotation
+        is_base_model = False
+        json_schema = None
         type_info = None
+
+        if isinstance(annotation, _AnnotatedAlias):
+            # If the parameter is annotated, just use the underlying type and ignore the metadata
+            annotation = annotation.__origin__
+
         if isinstance(annotation, _GenericAlias):
             type_info = str(annotation).replace("typing.", "").replace("typing_extensions.", "")
         elif annotation == Signature.empty:
             pass
         elif isinstance(annotation, type):
             type_info = annotation.__name__
+            if issubclass(annotation, BaseModel):
+                is_base_model = True
+                json_schema = annotation.model_json_schema()
         else:
             type_info = str(annotation)
 
-        inst = cls(name=parameter.name, type_info=type_info)
+        inst = cls(name=parameter.name, annotation=annotation, type_info=type_info, is_base_model=is_base_model, json_schema=json_schema)
         if parameter.default != Parameter.empty:
             val = parameter.default
-            if isinstance(val, str):
-                val = f"'{val}'"
             inst.default = DefaultValue(value=val)
 
         return inst
@@ -104,9 +126,9 @@ class TaskRegistry:
 
         logger.info(f"{len(self.task_names)} task(s) found: {self.task_names}")
         if self.runnable_tasks is None:
-            logger.warning("No TASKRUN_RUNNABLE_TASKS configured, so all tasks are runnable.")
+            logger.warning("No VCELERY_TASKRUN_RUNNABLE_TASKS configured, so all tasks are runnable.")
         elif not self.runnable_tasks:
-            logger.warning("TASKRUN_RUNNABLE_TASKS is empty, so NO tasks are runnable.")
+            logger.warning("VCELERY_TASKRUN_RUNNABLE_TASKS is empty, so NO tasks are runnable.")
         else:
             logger.info(f"Runnable task(s): {self.runnable_tasks}")
 

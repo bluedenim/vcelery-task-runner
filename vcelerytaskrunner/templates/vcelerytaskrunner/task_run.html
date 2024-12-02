@@ -5,91 +5,105 @@
 {% block content %}
   <div class="container">
       <div class="card">
+                    {% if task_id %}
+          <div class="card-body">
+            <div class="inset" style="--border-color: black;">
+                <p>
+                Task invocation completed. The task ID is <code>{{ task_id }}</code>. <b>NOTE</b> that this only means
+                the task was invoked. That task may still be running or fail. Check logs for the task ID to see its
+                run status.
+                </p>
+                <p>
+                    You can run another instance of the task by entering the information below.
+                </p>
+            </div>
+          </div>
+          {% endif %}
           <div id="args-instructions" class="card-header">
               <h3>Instructions on how to pass parameters to the task:</h3>
-              <p>Use the <code>args</code> and <code>kwargs</code> concepts as described for <a href="https://docs.celeryq.dev/en/stable/userguide/calling.html#example">apply_async()</a>.
-                  However, the values need to be provided as JSON values.
+              <p>
+              Each parameter of the task is shown in the list below with the type as provided by
+              <a href="https://docs.python.org/3/glossary.html#term-type-hint">type hints</a> of the task.
+              You can provide values for each parameter to invoke the task with. If there is no type hint available,
+              the type <code>str</code> is assumed.
               </p>
               <p>
-                  For a sample task of the signature: <code>def my_task(name, age, location=None)</code>. To call it
-                  as <code>my_task("John", 28, location="San Francisco")</code>:
+              Primitive types (such as <code>int</code>, <code>str</code>, <code>bool</code>) work fine. Using only
+                  these types and <code>List[primitive type]</code> and <code>dict[str, ...]</code> (basically anything
+                  that can be serialized as JSONs) for your Celery tasks (see note below) will ensure things work
+                  correctly.
               </p>
               <p>
-                  The positional parameters (args) should be: <code>["John", 28]</code>
+              Having said that, if you are using the older "pickle" serialization with your Celery setup, some other
+                  more sophisticated types are supported with some nuance:
               </p>
               <p>
-                  The keyword parameters (kwargs) should be: <code>{"location": "San Francisco"}</code>
+                <ul>
+                    <li><b>datetime</b> -- should be entered as an ISO 8601-compliant long form string value (e.g.
+                        <code>2024-11-24T20:00:00-08:00</code>).</li>
+                    <li><b>custom Pydantic BaseModel</b> -- should be entered as a JSON that the model can parse via
+                        its <a href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_validate_json"><code>model_validate_json()</code></a>.
+                    </li>
+                </ul>
+              </p>
+              <p>
+              <b>NOTE on <a href="https://docs.celeryq.dev/en/stable/userguide/calling.html#serializers">Celery serialization</a></b>:
+                  If you use non-primitive types for your Celery setup, you <b>should also use a serializer (e.g.
+                  "pickle") that supports the types</b>.
+                  This is not a requirement of this tool but of Celery in general. Recent versions of Celery by default
+                  use the "json" serializer by default and therefore will not support <code>datetime</code> or custom
+                  types.
               </p>
           </div>
+          {% if error_message %}
           <div class="card-body">
-              <h3>Run Task Parameters</h3>
+            <div class="inset" style="--border-color: red;">
+                Task invocation FAILED. The error was <code>{{ error_message }}</code>.
+            </div>
+          </div>
+          {% endif %}
+          <div class="card-body">
               <form action="{% url 'vcelery-task-run' %}" method="post">
-                  <div id="non-field-form-errors" class="field-error-msg">
-                  {{ form.non_field_errors }}
-                  </div>
-                  {% csrf_token %}
-                  <div class="container">
-                      <div class="row">
+                    <div id="non-field-form-errors" class="field-error-msg">
+                    {{ form.errors }}
+                    </div>
+                    {% csrf_token %}
+                    <div class="container">
+                        <div class="row">
                           <div class="col">
                               <div class="fieldWrapper">
-                                <label for="{{ form.task.id_for_label }}">Task:</label>
-                                {{ form.task }}
-                                <div class="field-error-msg">{{ form.task.errors }}</div>
+                                <label>Task:</label>
+                                <div class="fixed">{{ task }}({{ task_param_displays|join:", " }})</div>
+                                <input type="hidden" name="task" value="{{ task }}" />
                               </div>
                           </div>
-                      </div>
-                      {% if task_param_display %}
-                      <div class="row">
-                          <div class="col">
-                              <div class="fieldWrapper">
-                                  <div>
-                                      Parameters for this task:
-                                  </div>
-                                  <pre>{{ task_param_display }}</pre>
-                              </div>
-                          </div>
-                      </div>
-                      {% endif %}
-                      {% if task_param_display_positional %}
-                      <div class="row">
-                          <div class="col">
-                              <div class="fieldWrapper">
-                                <label for="{{ form.args.id_for_label }}">Positional parameters (args):</label>
-                                  <div><pre>{{ task_param_display_positional }}</pre></div>
-                                  {{ form.args }}
-                                <div class="field-error-msg">{{ form.args.errors }}</div>
-                              </div>
-                          </div>
-                      </div>
-                      {% endif %}
-                      {% if task_param_display_keyword %}
-                      <div class="row">
-                          <div class="col">
-                              <div class="fieldWrapper">
-                                <label for="{{ form.task.id_for_label }}">Keyword parameters (optional kwargs):</label>
-                                {% if task_param_display_keyword %}
-                                  <div><pre>{{ task_param_display_keyword }}</pre></div>
+                        </div>
+                        {% if task_params %}
+                        <div class="grid-x-max vert-gaps" style="--gap-size: 10px; --left-column-width: 300px; --top: 20px; --bottom: 10px;">
+                            {% for task_param in task_params %}
+                                {% if task_param.type_info %}
+                                <div class="right-align"><span class="fixed">{{ task_param.name }} ({{ task_param.type_info }}</span>{% if task_param.is_base_model %}, JSON possible{% endif %}):</div>
+                                {% else %}
+                                <div class="right-align"><span class="fixed">{{ task_param.name }}</span>:</div>
                                 {% endif %}
-                                {{ form.kwargs }}
-                                <div class="field-error-msg">{{ form.kwargs.errors }}</div>
-                              </div>
-                          </div>
-                      </div>
-                      {% endif %}
-                      <div class="row">
-                          <div id="run-task-submit-container" class="col right">
-                              <input class="btn btn-success" type="submit" value="Submit" />
-                          </div>
-                      </div>
-                  </div>
-              </form>
+                                <div>
+                                    {% if task_param.default %}
+                                    <input class="full-width fixed" type="text" name="{{ task_param.name }}" placeholder="{{ task_param.default.value }}"/>
+                                    {% else %}
+                                    <input class="full-width fixed" type="text" name="{{ task_param.name }}" />
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>                        
+                        {% endif %}
+                        <div class="row">
+                            <div id="run-task-submit-container" class="col right">
+                                <input class="btn btn-success" type="submit" value="Submit" />
+                            </div>
+                        </div>
+                    </div>
+                </form>
           </div>
       </div>
   </div>
-{% endblock %}
-
-{% block scriptbeforeend %}
-<script>
-    document.getElementById("{{ form.task.id_for_label }}").setAttribute("readonly", "true");
-</script>
 {% endblock %}
