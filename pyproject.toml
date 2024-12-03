@@ -27,7 +27,7 @@ requires-python = ">=3.8"
 include = ["vcelerytaskrunner*"]  # ["*"] by default
 
 [project.optional-dependencies]
-dev = []
+dev = ["build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/bluedenim/vcelery-task-runner"
