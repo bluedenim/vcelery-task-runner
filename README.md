@@ -39,6 +39,13 @@ Optional controls:
   ```
 - In `settings.py`, let **vcelery-task-runner** know your Celery app:
   ```
+  # For example: from proj.celery import app as celery_app
+  from celery import Celery
+  
+  from ... import app as celery_app
+  
+  assert isinstance(celery_app, Celery)
+  
   # celery_app is a reference to your project's Celery app instance
   VCELERY_TASKRUN_CELERY_APP = celery_app
   ```
@@ -57,7 +64,7 @@ visibility to only a subset of the tasks, add into the project's `settings.py`:
 
 ```
 VCELERY_TASKRUN_RUNNABLE_TASKS = {
-    "vcelerydev.tasks.he_he",  # full name of task (e.g. "vcelerydev/tasks.py::he_he)
+    "vcelerydev.tasks.say_hello",  # full name of task
 }
 ```
 
@@ -84,25 +91,25 @@ There is a set of pages ready to list/search task by name and to run tasks. To a
 to you app, add these entries into your main `urls.py`:
 
 ```
-from vcelerytaskrunner.views import TaskRunAPIView, TasksAPIView, TasksView, TaskRunFormView, TaskRunResultView
+from django.urls import path
+...
+from vcelerytaskrunner.views import TasksAPIView, TasksView, TaskRunFormView
 
 ...
 
 urlpatterns = [
     ...
-    url('^vcelery/tasks/', TasksView.as_view(), name="vcelery-tasks"),
-    url('^vcelery/task_run/', TaskRunFormView.as_view(), name="vcelery-task-run"),
-    url('^vcelery/task_run_result/(?P<task_id>[\w-]+)/', TaskRunResultView.as_view(), name="vcelery-task-run-result"),
+    path('tasks/', TasksView.as_view(), name="vcelery-tasks"),
+    path('task_run/', TaskRunFormView.as_view(), name="vcelery-task-run"),
 
-    url('^vcelery/api/tasks/', TasksAPIView.as_view(), name="vcelery-api-tasks"),
-    url('^vcelery/api/task_run/', csrf_exempt(TaskRunAPIView.as_view()), name="vcelery-api-task-run")
+    path('api/tasks/', TasksAPIView.as_view(), name="vcelery-api-tasks"),
     ....
 ]
 ```
 
-The actual URL paths may vary according to your project's / app's needs. However, the name MUST be as shown because
-there are code that looks up the views by name (e.g. `"vcelery-task-run"`), and they will fail if you don't use the
-names shown here.
+The actual URL paths may vary according to your project's / app's needs. However, the names MUST be as shown because
+there are code that look up the views by name (e.g. `django.urls.reverse("vcelery-task-run")`), and they will fail 
+if you don't use the names shown here.
 
 The view classes obviously have to be the ones shown. Although if you looked at the code and have done so carefully,
 you may derive from the views to specialize them as needed.

@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta:__legacy__'
 
 [project]
 name = "vcelery-task-runner"
-version = "0.0.18"
+version = "1.1.0"
 description = "UI to allow interactively starting Celery tasks"
 readme = "README.md"
 authors = [{ name = "Van Ly", email = "vancly@hotmail.com" }]
@@ -18,7 +18,8 @@ keywords = ["celery", "python", "django"]
 dependencies = [
     "django >= 4.2.16",
     "celery >= 5.3.6",
-    "djangorestframework >= 3.15.2"
+    "djangorestframework >= 3.15.2",
+    "pydantic >= 2.10.1"
 ]
 requires-python = ">=3.8"
 
@@ -26,7 +27,7 @@ requires-python = ">=3.8"
 include = ["vcelerytaskrunner*"]  # ["*"] by default
 
 [project.optional-dependencies]
-dev = []
+dev = ["build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/bluedenim/vcelery-task-runner"
