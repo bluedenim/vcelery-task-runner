@@ -21,7 +21,53 @@ Optional controls:
 ![run_result_task_id](https://github.com/user-attachments/assets/5e4f0091-b109-4d55-b780-c3919d8fd5af)
 
 
-## Installation
+## Demo
+### Set Up for Demo
+- Install Docker & Compose
+- Build:
+  ```
+  docker compose build
+  ...
+  ```
+- Initialize DB
+  ```
+  docker compose run --rm --service-ports app /bin/bash
+  ...
+  python manage.py migrate
+  ```
+- Create a user to test with
+  ```
+  docker compose run --rm --service-ports app /bin/bash
+  ...
+  python manage.py createsuperuser
+  ...
+  ```
+
+  Write down the credentials. You will use them in the following steps.
+
+### See Tasks
+- Start the `app` service. This is the Web app with UI to see and invoke Celery tasks.
+  ```
+  docker compose run --rm --service-ports app /bin/bash
+  ...
+  python manage.py runserver 0.0.0.0:8000
+  ```
+- Go to http://localhost:8000/tasks. Sign in with the credentials created above.
+
+- This will show the known Celery tasks. BUT to run them, proceed with the step below.
+
+### Run Tasks
+- Start a new Terminal.
+- To run tasks, start the `celery` service in the new terminal:
+  ```
+  docker compose up celery
+  ...
+  ```
+  ** NOTE: **both** `app` and `celery` services need to be running.
+
+- Now you can use the UI (http://localhost:8000/tasks) to run tasks. You should be able to see the task logs in the `celery` app.
+
+## Installation (into Your Project)
 
 - Install the package: `pip install vcelery-task-runner`
 - Add into your project's `settings.py`:
