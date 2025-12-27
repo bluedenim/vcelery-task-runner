@@ -70,12 +70,18 @@ class TasksAPIView(AccessMixin, APIView):
             TaskFilter(mask=mask, runnable_only=runnable_only),
             pagination=LimitOffsetPagination(offset=offset, limit=limit)
         )
+        task_registry: TaskRegistry = TASK_REGISTRY
         for task_info in task_infos_w_count["task_infos"]:
-            entry = task_info.copy()
+            entry: TaskInfo = task_info.copy()
             entry['task_run_url'] = self._create_task_run_url(task_info)
+            task_params = task_registry.get_task_parameters(task_info["name"])
+            entry['parameters'] = task_params
+
             entries.append(entry)
 
-        return JsonResponse(data={"tasks": entries, "total_count": task_infos_w_count["count"]})
+        data={"tasks": entries, "total_count": task_infos_w_count["count"]}
+
+        return JsonResponse(data=data, encoder=TaskParameter.json_encoder())
 
 
 class TaskRunAPIView(AccessMixin, APIView):
