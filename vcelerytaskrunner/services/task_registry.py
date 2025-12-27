@@ -1,4 +1,6 @@
+from datetime import datetime
 import inspect
+import json
 import logging
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -62,6 +64,18 @@ class TaskParameter:
     json_schema: Optional[Dict] = None
     default: Optional[DefaultValue] = None
 
+    class Encoder(json.JSONEncoder):
+        def default(self, o):
+            if hasattr(o, "to_dict"):
+                return o.to_dict()
+            if isinstance(o, datetime):
+                return o.isoformat()            
+            if isinstance(o, TaskParameter):
+                return o.to_dict()
+            if isinstance(o, DefaultValue):
+                return o.value
+            return super().default(o)
+
     @classmethod
     def from_parameter(cls, parameter: Parameter) -> "TaskParameter":
         annotation = parameter.annotation
@@ -92,6 +106,19 @@ class TaskParameter:
 
         return inst
 
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "type_info": self.type_info,
+            "is_base_model": self.is_base_model,
+            "json_schema": self.json_schema,
+            "default": self.default.value if self.default is not None else None
+        }
+
+    @staticmethod
+    def json_encoder() -> Type[json.JSONEncoder]:
+        return TaskParameter.Encoder
+        
 
 class TaskRegistry:
     """
